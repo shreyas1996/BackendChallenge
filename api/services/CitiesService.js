@@ -1,4 +1,8 @@
 const fs = require('fs');
+const { Worker } = require('worker_threads');
+const path = require('path');
+
+
 // Import addresses.json
 const addresses = require('../../addresses.json');
 const BaseService = require('./BaseService');
@@ -77,7 +81,18 @@ CitiesService.prototype.getArea = async function(guid, distance) {
     try {
         // Start the process in the background
         setTimeout(() => {
-            this.processArea(guid, distance);
+            // Create a new worker
+            const worker = new Worker(path.resolve(__dirname, '..','..', 'scripts', 'worker.js'), {
+                workerData: {
+                    guid: guid,
+                    distance: distance
+                }
+            });
+
+             // Listen for messages from the worker
+            worker.on('message', (nearbyCities) => {
+                results[AREA_RESULT_ENDPOINT_ID] = nearbyCities;
+            });
         });
         // Return the URL that can be polled for the final result
         let urlEndpoint = `area-result/${AREA_RESULT_ENDPOINT_ID}`
@@ -93,52 +108,10 @@ CitiesService.prototype.getArea = async function(guid, distance) {
     }
 };
 
-CitiesService.prototype.processArea = async function(guid, distance) {
-    try {
-
-        if(distance) {
-            distance = Number(distance);
-        }
-        // Find cities that have the specified tag
-        const cities = addresses.filter(address => address.guid === guid);
-   
-        // Get the first city from the result
-        const city = cities[0];
-   
-        // Calculate the distance from the first city to other cities
-        const nearbyCities = [];
-        const promiseArray = addresses.map((address) => {
-            if(address.guid !== city.guid) {
-                return this.getDistance(city.guid, address.guid)
-                .then((result) => {
-                    if (result.distance <= distance) {
-                        nearbyCities.push(address);
-                    }
-                })
-                .catch((error) => {
-                    console.error(error);
-                });
-            }
-        });
-
-        // Wait for all the promises to resolve
-        await Promise.all(promiseArray);
-   
-        // Store the result for the polling URL
-        results[AREA_RESULT_ENDPOINT_ID] = nearbyCities;
-    }
-    catch (error) {
-        console.error('Error processing area:', error);
-        throw new Error('Error processing area');
-    }
-
-}
-
 CitiesService.prototype.getAreaResult = async function(id) {
     try {
         // Get the result from memory
         const result = results[id];
-        console.log(result);
 
         if (!result) {
             return {

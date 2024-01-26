@@ -1,5 +1,4 @@
 const authMiddleware = (router) => {
-    console.log("Initializing auth middleware");
     router.use((req, res, next) => {
         // Check if the request has a valid bearer token
         const authHeader = req.headers.authorization;
