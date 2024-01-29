@@ -18,4 +18,4 @@ In order to run the script `index.js` successfully, the server must be up and ru
 
 - You can run `npm run server` or `node server.js` to start the server in a terminal. Do not close it.
 
-- After the server is up and running, run `npm install` and `npm run start` to start the script in a differnt terminal.
+- After the server is up and running, run `npm install` and `npm run start` to start the script in a different terminal.
