@@ -40,7 +40,7 @@ const processArea = async function (guid, distance) {
                         });
                 }
             }));
-        }, { concurrency: 500 }); // 500 parallel chunk executions at a time
+        }, { concurrency: 200 }); // 200 parallel chunk executions at a time
 
         // Wait for all the promises to resolve
         let nearbyCities = await Promise.all(promiseArray);

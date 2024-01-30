@@ -1,6 +1,7 @@
 const fs = require('fs');
 const { Worker } = require('worker_threads');
 const path = require('path');
+const { Readable } = require('stream');
 
 
 // Import addresses.json
@@ -18,6 +19,12 @@ const server = `${protocol}://${host}:${port}`;
 function CitiesService() {
     BaseService.call(this);
 }
+
+// Convert the addresses array to an object for faster lookups
+CitiesService.prototype.addressesObject = addresses.reduce((obj, address) => {
+    obj[address.guid] = address;
+    return obj;
+}, {});
 
 // Function to get cities by tag
 CitiesService.prototype.getCitiesByTag = async (tag, isActive) => {
@@ -39,8 +46,9 @@ CitiesService.prototype.getCitiesByTag = async (tag, isActive) => {
 CitiesService.prototype.getDistance = async function(guid1, guid2) {
     try {
         // Find the cities by guid
-        const city1 = addresses.find(address => address.guid === guid1);
-        const city2 = addresses.find(address => address.guid === guid2);
+
+        const city1 = this.addressesObject[guid1];
+        const city2 = this.addressesObject[guid2];
 
         if (!city1 || !city2) {
             throw new Error('One or both cities not found');
@@ -131,9 +139,18 @@ CitiesService.prototype.getAreaResult = async function(id) {
 }
 
 CitiesService.prototype.getCities = () => {
-    const fileStream = fs.createReadStream('./addresses.json');
+    // Convert the addresses array to a string
+    const addressesString = JSON.stringify(addresses, null, 2);
 
-    return fileStream;
+    // Create a readable stream from the string
+    const stream = new Readable({
+        read() {
+            this.push(addressesString);
+            this.push(null);
+        }
+    });
+
+    return stream;
 };
 
 module.exports = {
